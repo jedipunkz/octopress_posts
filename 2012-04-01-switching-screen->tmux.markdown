@@ -14,7 +14,7 @@ Debian sid から取得出来たのだけど、まだまだ完成度高くなく
 
 よって、Mac に tmux をインストールして作業するようになりました。インストール方法はこれ。
 
-予め [https://github.com/mxcl/homebrew/wiki/installation] (https://github.com/mxcl/homebrew/wiki/installation) に
+予め [https://github.com/mxcl/homebrew/wiki/installation](https://github.com/mxcl/homebrew/wiki/installation) に
 したがって homebrew をインストールする必要あり。
 
     % brew update

@@ -1,0 +1,78 @@
+---
+layout: post
+title: "SSH->Mosh : SSH 代替 Mosh で快適接続"
+date: 2012-04-14 14:33
+comments: true
+categories: ssh, terminal
+---
+今週/先週？、Hacker News で取り上げられた [Mosh](http://mosh.mit.edu/) を自宅
+と会社で使い始めた。SSH 代替なソフトウェアで、SSP (State Synchronization
+Protocol)over UDP で動作している。MIT が開発したそうだ。
+
+動作は、クライアントがシーケンス番号と共にデータグラムをサーバに送信し、同期し
+続ける。クライアントがローミングし IP アドレスが代わる等した時、以前より大きい
+シーケンス番号と共に正当なパケットが送信されたとサーバが認識した場合のみ、サー
+バは新しいソース IP アドレスを新たなクライアントだと認識する。もちろん、この場
+合のローミングは NAT 越しの IP 再アサイン時やクライアントのネットワークインター
+フェース切り替えやノート PC を新たな無線アクセスポイント配下へ移動した場合も同
+様に動作する。めちゃ便利やん。Mosh は SSP を2経路持ち、1つはクライアントからサー
+バへユーザの打ったキーの同期を取る。もう一方はサーバからクライアントへで、スク
+リーンの状態をクライアントへ同期を取るためだ。
+
+つまり、ノート PC やその他モバイル機器の IP アドレスが変わったとしても接続性は
+担保され、また ノート PC のスリープ解除後にも接続性は確保され続ける。また、UDP
+で動作しているので、フルスクリーンの vim や emacs 等での再描画の遅延等も起こり
+にくそうだ。あと Ctrl-C 。TCP だと、キータイプがサーバプログラムに伝わらない状
+況はプログラムプロセスが混雑しているとよくあるのだが、SSP over UDP での Ctrl-C
+はそういうことが無いそうだ。
+
+また、認証機構は SSH に任せているので sshd は引き続き稼働させておく必要がある。
+mosh は接続する先のユーザが一般ユーザ権限で動作させるプログラムでしかない。つ
+まり mosh daemon は必要ないようだ。
+
+実際にインストールしてみた。Mac の場合、homebrew で
+
+    % brew update
+	% brew install mobile-shell
+
+で完了。私はサーバに Debian と Ubuntu を使っているのだが、Debian の場合は
+testing, unstable でパッケージが容易されている。が、testing のパッケージを使っ
+た所、動作が不安定だった。文字を削除しても一文字消えない等。よって、github か
+ら最新のソースを取得。(unstable のパッケージでもイイかもしれない、私は試してな
+いです。)
+
+    % sudo apt-get install protobuf-compiler libprotobuf-dev pkg-config \
+	  libboost-dev libncurses5-dev
+    % cd gitwork
+    % git clone https://github.com/keithw/mosh.git
+	% cd mosh
+	% ./autogen.sh && ./configure && make
+	% sudo make install
+
+Ubuntu の場合は、
+
+    % sudo apt-get install python-software-properties
+	% sudo add-apt-repository ppa:keithw/mosh
+	% sudo apt-get update
+	% sudo apt-get install mosh
+
+だ。その他の destribution, OS の場合は下記のリンクを参照してみてください。
+
+[http://mosh.mit.edu/#getting](http://mosh.mit.edu/#getting)
+
+次にクライアント <-> サーバ間の経路が変わっても接続したままになるのか、テスト
+してみた。
+
+MacBook wireless nic <-> server を MacBook ethernet nic <-> server に接続しな
+おしてみた。また、その接続しなおしのタイミングの間、
+
+    % while(true) do echo "is mosh alive ?" ;sleep 3; done
+
+とシェル上で実行し続けた。結果、サーバに再接続され、また上のシェルプロセスも継
+続され続けた！これには驚いた。
+
+ということで、使い始めて1週間だが今のところ快適。
+
+会社の方に protobuf は Google が自社ネットワーク内のトラフィック軽減のために開
+発したものだ、と言っていた。こんなところでも Google の技術力がすんごいことに改
+めて気がついたよ。
