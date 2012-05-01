@@ -72,5 +72,18 @@ gitosis-admin.git を clone してきて、gitosis.conf を修正し commit/push
     local% git remote add origin git@obi.chobiwan.me:test.git
     local% git push origin master
 
+(2012/05/01 追記)
+新規ユーザの追加方法は下記の通り。
+
+    local% ssh-keygen -t rsa
+	local% cd ~/gitwork
+	local% git clone git@${remote}:gitosis-admin.git
+    local% cp ~/.ssh/id_rsa.pub ./gitosis-admin/keydir/user@hostname.pub
+    local% vi ./gitosis-admin/gitosis.conf
+           <参加したいリポジトリの membersに user@hostname.pub を追加(スペース区切り)
+    local% git gitosis-admin && git add . && git commit -m "added a user"
+	local% git push origin master
+
 公開鍵のアップやレポジトリ・グループの生成の仕方を覚えれば、OK なのかなぁと。
 次はレポジトリのバックアップとレカバリについてまとめていきたい。リカバリできないと死ねるから。
+
