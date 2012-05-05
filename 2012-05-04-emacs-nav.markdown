@@ -1,0 +1,36 @@
+---
+layout: post
+title: "Emacs でファイルブラウザ emacs-nav を利用"
+date: 2012-05-04 07:14
+comments: true
+categories: emacs
+---
+Hacker News で取り上げられていた emacs-nav を使ってみた。
+
+[http://code.google.com/p/emacs-nav/](http://code.google.com/p/emacs-nav/)
+
+インストール方法は簡単で 
+
+    % wget http://emacs-nav.googlecode.com/files/emacs-nav-20110220a.tar.gz
+	% tar zxvf emacs-nav-20110220a.tar.gz
+	% mv emacs-nav-20110220a ~/.emacs.d/emacs-nav
+
+して
+
+    ;; emacs-nav
+    (add-to-list 'load-path "~/.emacs.d/emacs-nav/")
+    (require 'nav)
+
+するだけ。
+
+見た目はこんな感じ。
+
+<img src="http://jedipunkz.github.com/pix/emacs-nav.png">
+
+起動は M-x nav と入力。ウィンドウの左にファイルブラウザが開いてファイルを選択
+出来る。これだけだと、使うメリットを感じないが、面白いのがマウスで選択出来ると
+ころ。TextMate のブラウザのような感じだ。
+
+
+今だと anything.el が便利すぎて、こちらを利用する価値を見出せるか分からないけ
+ど、暫く使ってみようと思う。
