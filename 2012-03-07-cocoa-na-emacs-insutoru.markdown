@@ -20,6 +20,7 @@ homebrew は公式サイトに詳しいことが書いてありますけどイ�
 そして Cocoa な emacs インストール。                                                                                      
                                                                                                                           
     % brew install --cocoa emacs 
+    % sudo mv /usr/local/Cellar/emacs/24.1/Emacs.app /Applications/
                                                                                                                           
 以上です..。簡単すぎる。先人たちのおかげですね。                                                                          
                                                                                                                           
