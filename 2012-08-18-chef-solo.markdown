@@ -1,0 +1,207 @@
+---
+layout: post
+title: "chef-solo で学ぶ chef の基本動作"
+date: 2012-08-18 10:34
+comments: true
+categories: chef
+---
+仕事で Opesocd Chef の情報収集をしてたのですが、僕が感じるにこれはインフラエン
+ジニアの未来だと。逆に言うとインフラエンジニアの危機。AWS のようなクラウドサー
+ビスがあればアプリケーションエンジニアが今までインフラエンジニアが行っていた作
+業を自ら出来てしまうからです。
+
+インフラエンジニアなら身に付けるしかない！って僕が感じる Chef について
+chef-solo を通して理解するために情報まとめました。
+
+chef には chef-server 構成で動作するものと chef-solo というサーバ無しで動作す
+るものがある。chef-server は構築するのが少し大変 (後に方法をブログに書きたい)
+なので今回は chef-solo を使ってみる。ちなみに Opscode が chef-server のホスティ
+ングサービスを展開している。彼らとしてはこちらがメイン。
+
+chef-solo の入れ方
+----
+
+opscode が推奨している ruby-1.9.2 をインストールする。rvm は色々問題を招き寄せ
+るので rbenv を使って環境整えます。root ユーザ環境内に入れてください。
+
+必要なパッケージをインストール
+
+    % sudo apt-get update
+    % sudo apt-get install build-essential zlib1g-dev libssl-dev
+
+root ユーザにてrbenv をインストール
+
+    % sudo -i
+    # cd ~
+    # git clone git://github.com/sstephenson/rbenv.git .rbenv
+    # echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.zshrc
+    # echo 'eval "$(rbenv init -)"' >> ~/.zshrc
+
+ruby-build をインストール
+
+    # mkdir -p ~/.rbenv/plugins
+    # cd ~/.rbenv/plugins
+    # git clone git://github.com/sstephenson/ruby-build.git
+
+opscode が推奨している ruby バージョン 1.9.2 をインストール
+
+    # rbenv install 1.9.2-p290
+    # rbenv global 1.9.2-p290
+    # rbenv rehash
+
+capistrano, chef のインストールを gem を使い行う
+
+    # gem install chef
+    # rbenv rehash
+
+これらは 'root' ユーザ環境内に構築する必要がある。chef がそれを前提としている
+からだ。また、perl と違い ruby は後方互換性がないので将来のことを考え rbenv で
+バージョンを管理し続ける必要がある、と思う。
+
+chef-solo の設定
+----
+
+/etc/chef/chef.json ファイルを修正することで、chef-solo で実行する recipe の追
+加を行う。これは複数指定することが可能。
+
+    {
+        "run_list": [
+            "recipe[ntp]",
+        ]
+    }
+
+上記は ntp レシピ を追加した例。次に /etc/chef/solo.rb を生成する。これは
+chef-solo 動作に必要な PATH 指定を主に行う。
+
+    file_cache_path "/tmp/chef-solo"
+    cookbook_path ["/home/jedipunkz/cookbooks"]
+    role_path "/home/jedipunkz/role"
+    log_level :debug
+
+上記パラメータの説明は下記の通り。
+
+* file_cache_path : cache 用のディレクトリ指定
+* cookbook_path : cookbook を配置するディレクトリ指定
+* role_path : role ディレクトリ指定
+* log_level : Log Level の指定
+
+サンプルクックブックのダウンロードと理解
+----
+
+サンプルとして opscode が提供している 'ntp' を持ってくる。中身が簡単に理解出来
+るものなので最初理解するために持ってくるものとしては最適。
+
+    % cd /home/jedipunkz/cookbooks
+	% git clone https://github.com/opscode-cookbooks/ntp.git
+
+持ってきたクックブックの構造は
+
+    ntp .
+	    |- attributes
+		|- templates
+		|- recipes
+        |- meradata.rb
+		|-..
+		|-..
+
+となっている。attribute/default.rb の一部分を抜粋を記してみた。
+
+    default['ntp']['servers']   = %w{ 0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org 3.pool.ntp.org }
+	default['ntp']['packages'] = %w{ ntp ntpdate }
+	default['ntp']['service'] = "ntp"
+	default['ntp']['varlibdir'] = "/var/lib/ntp"
+	default['ntp']['conf_owner'] = "root"
+	default['ntp']['conf_group'] = "root"
+	default['ntp']['var_owner'] = "ntp"
+	default['ntp']['var_group'] = "ntp"
+
+chef は ruby の DSL で記述するが template や recipe 内で指定するパラメータ集と
+なるのが attribute となる。上を見てみると ntp のパッケージ名やディレクトリのオー
+ナー情報等が記されている。
+
+templates/default/ntp.conf.erb を見てみると...
+
+    driftfile <%= node['ntp']['driftfile'] %>
+	statsdir <%= node['ntp']['statsdir'] %>
+	
+	statistics loopstats peerstats clockstats
+	filegen loopstats file loopstats type day enable
+	filegen peerstats file peerstats type day enable
+	filegen clockstats file clockstats type day enable
+	
+	<%# If ntp.peers is not empty %>
+	<% unless node['ntp']['peers'].empty? -%>
+	  <%# Loop through defined peers, but don't peer with ourself %>
+      <% node['ntp']['peers'].each do |ntppeer| -%>
+        <% if node['ipaddress'] != ntppeer and node['fqdn'] != ntppeer %>
+	peer <%= ntppeer %> iburst
+	restrict <%= ntppeer %> nomodify
+        <% end -%>
+      <% end -%>
+    <% end -%>
+
+これはインストールする /etc/ntp.conf (recipde で後に指定する) の内容そのままだ。
+先程も書いたが chef は ruby の DSL 記述が基本なので attribute で指定したパラメー
+タを持ってきて、こういったコンフィグファイルを生成出来る。では最後に recipe を
+見てみる。この recipe が chef の本体と言っていいところですね。上部の抜粋です。
+
+    node['ntp']['packages'].each do |ntppkg|
+      package ntppkg
+    end
+
+この ['ntp']['packages'] は attributes/default.rb に %w{ ntp ntpdate } と書い
+てある。つまり ntp, ntpdate の配列を ntppkg として回して chef resources の
+'package' を使ってインストールしている。resources については chef の公式ドキュ
+メントを読むと良い。recipe で使える記述全てが1ページにまとまっている。
+
+<http://wiki.opscode.com/display/chef/Resources>
+
+次に recipe の下部を抜粋してみた。chef resources の template によって ntp.conf
+をインストールしている。
+
+    template "/etc/ntp.conf" do
+      source "ntp.conf.erb"
+      owner node['ntp']['conf_owner'] 
+      group node['ntp']['conf_group']
+      mode "0644"
+      notifies :restart, resources(:service => node['ntp']['service'])
+    end
+
+source によって template/default/ntp.conf.erb を呼び出し owner, group でファイ
+ルのオーナー情報を、mode でパーミッションを指定している。また修正が入った際に
+ntp サービスの再起動を行っているのが最終行だ。
+
+抜粋で例を挙げながらだったが、Resources の記述方法さえ理解してしまえば全てが理
+解出来るだろうし、自分でクックブックを作ることも簡単だろう。
+
+chef-solo の実行
+----
+
+ではいよいよ chef-solo の実行。
+
+上記で生成した chef.json と solo.rb を指定し chef-solo を実行することで上記
+run_list で指定した recipe 'ntp' が実行される。
+
+    % sudo -i
+    # chef-solo -c /etc/chef/solo.rb -j /etc/chef/chef.json
+
+
+まとめ
+----
+
+chef-server 構成の組み方は後日ブログで書いてみたい。先日 #DevLOVE に参加した際
+にも話題になったが、chef-solo を使うか chef-server 構成を組むか、まだ議論が必
+要そう。chef-server 構成を組むことは簡単では無いが普通にエンジニアなら組めるだ
+ろう。が、組んだところで拡張性・冗長性・を考えた構成を組むにはまだまだノウハウ
+が足りない。また couchDB, rabbitmq など比較的新しいミドルウェアが使われている
+ので、これから経験積まないと難しいだろう。それに比べて chef-solo は上記の通り
+とてもシンプル。しかも chef-solo を実行する node 自身は必然的に数が増え拡張す
+るし、それを受ける apt レポジトリは単純な HTTP なので拡張・冗長は簡単だろう。
+
+また、capistrano と chef-solo を組み合わせることで、role といった概念をもたせ
+たり、workstation で一括操作といった利便性も持たせることが出来る。ある意味
+chef-solo を使うなら必然的な点になりそう。capistrano との組み合わせについても
+後日ブログで書いてみたい。
+
+chef を理解すること自体はそんなには難しくないし、これからの時代に必要になるこ
+とは眼に見えているので、学んでおいて損はしないだろう。
