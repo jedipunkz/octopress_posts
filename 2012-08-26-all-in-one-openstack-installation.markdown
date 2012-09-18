@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "all in one OpenStack ESSEX Installation"
+title: "OpenStack ESSEX オールインワン インストール"
 date: 2012-08-26 00:20
 comments: true
 categories: openstack
@@ -14,8 +14,8 @@ OpenStack のインストールってしんどいなぁ、って感じて devsta
 <http://docs.openstack.org/essex/openstack-compute/starter/os-compute-starterguide-trunk.pdf>
 
 このマニュアルの前提は、ネットワーク2セグメント・server1, server2 の計2台が前
-提なのですが、環境作るのがしんどいので、all in one な構築がしたい！で、シェル
-スクリプトを作ったのでそれを使ったインストール方法を紹介します。
+提なのですが、環境作るのがしんどいので、オールインワンな構築がしたい！サーバ1台で OpenStack ESSEX を
+インストールしたい！で、シェルスクリプトを作ったのでそれを使ったインストール方法を紹介します。
 
 <img src="http://jedipunkz.github.com/pix/openstack_thinkpad.jpg">
 
@@ -91,7 +91,7 @@ ${SWIFT_DEV} だけ気をつければ OK です。その他は内部ネットワ
 で実行。
 
     # chmod +x openstack_install/openstack_install.sh
-    # ./openstak_install/openstack_install.sh
+    # ./openstak_install/openstack_install.sh allinone
     ( wait some minutes...)
 
 マシンによりますが、10分弱すると OpenStack が構築されているはずです。
@@ -127,14 +127,14 @@ OS イメージと SSH キーペアのインストール
 #### Glance に OS イメージをインストール
 
 作成した OS イメージを Glance に追加します。先ほどのスクリプトで生成された
-/root/.zsh が Glance に接続するために必要なので source してから...
+/root/.openstack が Glance に接続するために必要なので zsh の場合 source してから...
 
-    # source /root/.zshrc
+    # source /root/.openstack
 	# glance add name="Ubuntu Server 12.04LTS" is_public=true container_format=ovf disk_format=qcow2 < server.img
 
-で追加出来ます。.zsh は bash でも取得できるのでその際は
+で追加出来ます。.openstack は bash でも取得できるのでその際は
 
-    # . /root/.zsh
+    # . /root/.openstack
 
 してください。root ユーザ以外でも操作出来ます。
 

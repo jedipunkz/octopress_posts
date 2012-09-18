@@ -98,7 +98,7 @@ console 同様に ctrl:caps を swap する。xorg.conf が無い(2012/04時点)
 
 日本語入力に uim-mozc を利用することに。今のところこれが一番快適。
 
-    % sudo apt-get install uim-mozc uim-xim uim-utils mozc-utils-gui mozc-server
+    % sudo apt-get install uim-mozc uim-xim uim-utils mozc-utils-gui mozc-server uim-qt
 
 /etc/X11/openbox/autostart に下記の行を追記
 
